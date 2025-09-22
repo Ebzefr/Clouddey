@@ -1,0 +1,16 @@
+{
+  "name": "clouddey",
+  "version": "1.0.0",
+  "main": "index.js",
+
+    "scripts": {
+    "dev": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "install-all": "npm install && cd frontend && npm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
+
