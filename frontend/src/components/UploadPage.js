@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import logo from '../assets/logo1.webp';
+import { useNavigate } from 'react-router-dom';
 
 const UploadPage = () => {
   const [language, setLanguage] = useState('en');
@@ -15,6 +16,7 @@ const UploadPage = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   
   const fileInputRef = useRef(null);
+  const navigate = useNavigate();
 
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -26,9 +28,35 @@ const UploadPage = () => {
     { code: 'ar', name: 'العربية', flag: '🇸🇦' }
   ];
 
+  const selectLanguage = (langCode) => {
+    setLanguage(langCode);
+    setShowLanguageDropdown(false);
+  };
+
+  const getCurrentLanguage = () => {
+    return languages.find(lang => lang.code === language) || languages[0];
+  };
+
+  // Smart navigation function for About/Contact
+  const handleNavigation = (section) => {
+    navigate(`/#${section}`);
+    // Small delay to ensure page loads before scrolling
+    setTimeout(() => {
+      const element = document.getElementById(section);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
   const content = {
     en: {
-      nav: { home: 'Home', language: 'Language' },
+      nav: { 
+        home: 'Home', 
+        about: 'About',
+        contact: 'Contact',
+        language: 'Language' 
+      },
       upload: {
         title: 'Upload & Share Files',
         subtitle: 'Securely upload files and get shareable links',
@@ -56,7 +84,12 @@ const UploadPage = () => {
       }
     },
     es: {
-      nav: { home: 'Inicio', language: 'Idioma' },
+      nav: { 
+        home: 'Inicio', 
+        about: 'Acerca de',
+        contact: 'Contacto',
+        language: 'Idioma' 
+      },
       upload: {
         title: 'Subir y Compartir Archivos',
         subtitle: 'Sube archivos de forma segura y obtén enlaces para compartir',
@@ -83,10 +116,6 @@ const UploadPage = () => {
         }
       }
     }
-  };
-
-  const getCurrentLanguage = () => {
-    return languages.find(lang => lang.code === language) || languages[0];
   };
 
   const currentContent = content[language] || content.en;
@@ -175,57 +204,63 @@ const UploadPage = () => {
     setCopySuccess(false);
   };
 
-  const goHome = () => {
-    // This would typically be handled by React Router
-    window.location.href = '/';
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm px-6 py-4">
+      <nav className="bg-white shadow-sm px-6 py-2">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-2">
+          {/* Logo */}
+          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
             <img 
               src={logo} 
               alt="Clouddey Logo" 
-              className="w-16 h-16 object-contain"
+              className="w-24 h-24 object-contain"
             />
           </div>
 
-          <div className="flex items-center space-x-8">
+          {/* Navigation Items */}
+          <div className="flex items-center space-x-6">
             <button 
-              onClick={goHome}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              onClick={() => navigate('/')}
+              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
             >
               {currentContent.nav.home}
+            </button>
+            <button 
+              onClick={() => handleNavigation('about')}
+              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
+            >
+              {currentContent.nav.about}
+            </button>
+            <button 
+              onClick={() => handleNavigation('contact')}
+              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
+            >
+              {currentContent.nav.contact}
             </button>
             <div className="relative">
               <button 
                 onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-xl"
               >
-                <span className="text-lg">{getCurrentLanguage().flag}</span>
+                <span className="text-base">{getCurrentLanguage().flag}</span>
                 <span>{getCurrentLanguage().name}</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               
               {showLanguageDropdown && (
-                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[160px]">
+                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[140px]">
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
-                      onClick={() => {
-                        setLanguage(lang.code);
-                        setShowLanguageDropdown(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-3 ${
+                      onClick={() => selectLanguage(lang.code)}
+                      className={`w-full text-left px-3 py-1.5 hover:bg-gray-100 flex items-center space-x-2 text-xl ${
                         language === lang.code ? 'bg-orange-50 text-clouddey-orange' : 'text-gray-700'
                       }`}
                     >
-                      <span className="text-lg">{lang.flag}</span>
+                      <span className="text-base">{lang.flag}</span>
                       <span>{lang.name}</span>
                     </button>
                   ))}
@@ -396,6 +431,13 @@ const UploadPage = () => {
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <footer className="bg-clouddey-blue text-white px-6 py-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-white">© 2025 Clouddey. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 };
