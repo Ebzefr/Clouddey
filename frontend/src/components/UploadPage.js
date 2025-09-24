@@ -120,6 +120,66 @@ const UploadPage = () => {
 
   const currentContent = content[language] || content.en;
 
+  const uploadFile = async () => {
+  if (!selectedFile) return;
+  
+  setIsUploading(true);
+  setUploadProgress(0);
+
+  try {
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    
+    if (password && password.trim()) {
+      formData.append('password', password.trim());
+    }
+    
+    formData.append('expirationTime', expirationTime);
+
+    // Create XMLHttpRequest to track upload progress
+    const xhr = new XMLHttpRequest();
+
+    // Track upload progress
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percentComplete);
+      }
+    });
+
+    // Handle upload completion
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200) {
+        const response = JSON.parse(xhr.responseText);
+        setIsUploading(false);
+        setUploadComplete(true);
+        setGeneratedLink(response.link);
+      } else {
+        const error = JSON.parse(xhr.responseText);
+        throw new Error(error.error || 'Upload failed');
+      }
+    });
+
+    // Handle upload errors
+    xhr.addEventListener('error', () => {
+      throw new Error('Upload failed. Please check your connection.');
+    });
+
+    // Send the upload request
+    xhr.open('POST', '/api/upload');
+    xhr.send(formData);
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    setIsUploading(false);
+    setUploadProgress(0);
+    
+    // Show error to user 
+    alert(error.message || 'Upload failed. Please try again.');
+  }
+};
+
   // File handling functions
   const handleDrag = (e) => {
     e.preventDefault();
