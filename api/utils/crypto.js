@@ -1,12 +1,12 @@
-import bcrypt from 'bcryptjs';
-import { nanoid } from 'nanoid';
+const bcrypt = require('bcryptjs');
+const { nanoid } = require('nanoid');
 
 /**
  * Generate a unique, URL-safe file ID
  * @param {number} length - Length of the ID (default: 12)
  * @returns {string} Unique file ID
  */
-export function generateFileId(length = 12) {
+exports.generateFileId = function(length = 12){
   return nanoid(length);
 }
 
@@ -15,7 +15,7 @@ export function generateFileId(length = 12) {
  * @param {number} length - Length of the token (default: 21)
  * @returns {string} Unique download token
  */
-export function generateDownloadToken(length = 21) {
+exports.generateDownloadToken = function(length = 21) {
   return nanoid(length);
 }
 
@@ -24,7 +24,7 @@ export function generateDownloadToken(length = 21) {
  * @param {string} password - Plain text password
  * @returns {Promise<string>} Hashed password
  */
-export async function hashPassword(password) {
+exports.hashPassword = async function (password) {
   const saltRounds = 12;
   return await bcrypt.hash(password, saltRounds);
 }
@@ -35,7 +35,7 @@ export async function hashPassword(password) {
  * @param {string} hash - Stored password hash
  * @returns {Promise<boolean>} Whether password matches
  */
-export async function verifyPassword(password, hash) {
+exports.verifyPassword = async function (password, hash) {
   return await bcrypt.compare(password, hash);
 }
 
@@ -44,7 +44,7 @@ export async function verifyPassword(password, hash) {
  * @param {string} duration - Duration string ('15min', '1hour', '6hours', '24hours', '7days')
  * @returns {Date} Expiration date
  */
-export function calculateExpiration(duration) {
+exports.calculateExpiration = function (duration) {
   const now = new Date();
   const expirationMap = {
     '15min': 15 * 60 * 1000,
@@ -63,7 +63,7 @@ export function calculateExpiration(duration) {
  * @param {Date|string} expirationDate - Expiration date
  * @returns {boolean} Whether file has expired
  */
-export function isExpired(expirationDate) {
+exports.isExpired = function (expirationDate) {
   const now = new Date();
   const expiry = new Date(expirationDate);
   return now > expiry;
@@ -74,7 +74,7 @@ export function isExpired(expirationDate) {
  * @param {string} filename - Original filename
  * @returns {string} Sanitized filename
  */
-export function sanitizeFilename(filename) {
+exports.sanitizeFilename = function(filename) {
   // Remove path separators and other dangerous characters
   return filename
     .replace(/[\/\\:*?"<>|]/g, '_')

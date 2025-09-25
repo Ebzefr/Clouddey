@@ -1,13 +1,11 @@
-import { deleteFile } from './utils/storage.js';
-import { getExpiredFiles, deleteFileRecord } from './utils/database.js';
+const { deleteFile } = require('./utils/storage.js');
+const { getExpiredFiles, deleteFileRecord } = require('./utils/database.js');
 
-export default async function handler(req, res) {
-  // Only allow GET requests (this could be called by a cron job)
+module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Simple authentication to prevent abuse
   const authHeader = req.headers.authorization;
   const expectedToken = process.env.CLEANUP_TOKEN || 'cleanup-secret-token';
   
@@ -16,7 +14,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get all expired files
     const expiredFiles = await getExpiredFiles();
     
     if (expiredFiles.length === 0) {
@@ -29,13 +26,9 @@ export default async function handler(req, res) {
     let cleanedCount = 0;
     const errors = [];
 
-    // Delete each expired file
     for (const fileRecord of expiredFiles) {
       try {
-        // Delete from storage
         const storageDeleted = await deleteFile(fileRecord.id);
-        
-        // Delete from database
         const dbDeleted = await deleteFileRecord(fileRecord.id);
         
         if (storageDeleted && dbDeleted) {

@@ -1,5 +1,5 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 // Configure S3 client for Cloudflare R2
 const s3Client = new S3Client({
@@ -13,15 +13,7 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.CLOUDFLARE_R2_BUCKET_NAME;
 
-/**
- * Upload file to cloud storage
- * @param {string} fileId - Unique file identifier
- * @param {Buffer} fileBuffer - File data
- * @param {string} contentType - MIME type
- * @param {string} originalName - Original filename
- * @returns {Promise<boolean>} Success status
- */
-export async function uploadFile(fileId, fileBuffer, contentType, originalName) {
+exports.uploadFile = async function(fileId, fileBuffer, contentType, originalName) {
   try {
     const uploadCommand = new PutObjectCommand({
       Bucket: BUCKET_NAME,
@@ -42,12 +34,7 @@ export async function uploadFile(fileId, fileBuffer, contentType, originalName) 
   }
 }
 
-/**
- * Get file from cloud storage
- * @param {string} fileId - Unique file identifier
- * @returns {Promise<{success: boolean, data?: any, contentType?: string, originalName?: string}>}
- */
-export async function getFile(fileId) {
+exports.getFile = async function(fileId) {
   try {
     const getCommand = new GetObjectCommand({
       Bucket: BUCKET_NAME,
@@ -56,7 +43,6 @@ export async function getFile(fileId) {
 
     const response = await s3Client.send(getCommand);
     
-    // Convert stream to buffer
     const chunks = [];
     for await (const chunk of response.Body) {
       chunks.push(chunk);
@@ -75,12 +61,7 @@ export async function getFile(fileId) {
   }
 }
 
-/**
- * Delete file from cloud storage
- * @param {string} fileId - Unique file identifier
- * @returns {Promise<boolean>} Success status
- */
-export async function deleteFile(fileId) {
+exports.deleteFile = async function(fileId) {
   try {
     const deleteCommand = new DeleteObjectCommand({
       Bucket: BUCKET_NAME,
@@ -95,13 +76,7 @@ export async function deleteFile(fileId) {
   }
 }
 
-/**
- * Generate presigned URL for direct browser upload (alternative approach)
- * @param {string} fileId - Unique file identifier
- * @param {number} expiresIn - URL expiration in seconds
- * @returns {Promise<string>} Presigned URL
- */
-export async function generateUploadUrl(fileId, expiresIn = 3600) {
+exports.generateUploadUrl = async function(fileId, expiresIn = 3600) {
   try {
     const putCommand = new PutObjectCommand({
       Bucket: BUCKET_NAME,

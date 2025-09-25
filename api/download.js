@@ -1,8 +1,8 @@
-import { getFile, deleteFile } from './utils/storage.js';
-import { verifyPassword, isExpired } from './utils/crypto.js';
-import { getFileRecord, updateFileRecord, deleteFileRecord } from './utils/database.js';
+const { getFile, deleteFile } = require('./utils/storage.js');
+const { verifyPassword, isExpired } = require('./utils/crypto.js');
+const { getFileRecord, updateFileRecord, deleteFileRecord } = require('./utils/database.js');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

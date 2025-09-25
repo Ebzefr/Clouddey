@@ -1,29 +1,15 @@
-// NOTE: This is a simple in-memory store for demo purposes,
-// for production a real database will be used
+// NOTE: This is a simple in-memory store for demo purposes
+// For production, replace with a real database like Vercel KV, PlanetScale, or Supabase
 
 // In-memory storage (will reset on serverless function restart)
 let fileStore = new Map();
-
-/**
- * File record structure
- * @typedef {Object} FileRecord
- * @property {string} id - Unique file ID
- * @property {string} originalName - Original filename
- * @property {string} contentType - MIME type
- * @property {number} size - File size in bytes
- * @property {string|null} passwordHash - Hashed password (null if no password)
- * @property {Date} expiresAt - Expiration timestamp
- * @property {Date} createdAt - Upload timestamp
- * @property {number} downloadCount - Number of times downloaded
- * @property {boolean} deleteAfterDownload - Whether to delete after first download
- */
 
 /**
  * Save file metadata
  * @param {FileRecord} fileRecord - File metadata to store
  * @returns {Promise<boolean>} Success status
  */
-export async function saveFileRecord(fileRecord) {
+exports.saveFileRecord = async function(fileRecord) {
   try {
     fileStore.set(fileRecord.id, {
       ...fileRecord,
@@ -42,7 +28,7 @@ export async function saveFileRecord(fileRecord) {
  * @param {string} fileId - File ID
  * @returns {Promise<FileRecord|null>} File record or null if not found
  */
-export async function getFileRecord(fileId) {
+exports.getFileRecord = async function(fileId) {
   try {
     return fileStore.get(fileId) || null;
   } catch (error) {
@@ -57,7 +43,7 @@ export async function getFileRecord(fileId) {
  * @param {Partial<FileRecord>} updates - Fields to update
  * @returns {Promise<boolean>} Success status
  */
-export async function updateFileRecord(fileId, updates) {
+exports.updateFileRecord = async function(fileId, updates) {
   try {
     const existing = fileStore.get(fileId);
     if (!existing) return false;
@@ -75,7 +61,7 @@ export async function updateFileRecord(fileId, updates) {
  * @param {string} fileId - File ID
  * @returns {Promise<boolean>} Success status
  */
-export async function deleteFileRecord(fileId) {
+exports.deleteFileRecord = async function(fileId) {
   try {
     return fileStore.delete(fileId);
   } catch (error) {
@@ -88,7 +74,7 @@ export async function deleteFileRecord(fileId) {
  * Get all expired files for cleanup
  * @returns {Promise<FileRecord[]>} Array of expired file records
  */
-export async function getExpiredFiles() {
+exports.getExpiredFiles = async function() {
   try {
     const now = new Date();
     const expiredFiles = [];
@@ -110,7 +96,7 @@ export async function getExpiredFiles() {
  * Get total file count and storage stats
  * @returns {Promise<{totalFiles: number, totalSize: number}>} Storage statistics
  */
-export async function getStorageStats() {
+exports.getStorageStats = async function() {
   try {
     let totalFiles = 0;
     let totalSize = 0;

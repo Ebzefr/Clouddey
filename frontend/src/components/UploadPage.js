@@ -120,66 +120,6 @@ const UploadPage = () => {
 
   const currentContent = content[language] || content.en;
 
-  const uploadFile = async () => {
-  if (!selectedFile) return;
-  
-  setIsUploading(true);
-  setUploadProgress(0);
-
-  try {
-    // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    
-    if (password && password.trim()) {
-      formData.append('password', password.trim());
-    }
-    
-    formData.append('expirationTime', expirationTime);
-
-    // Create XMLHttpRequest to track upload progress
-    const xhr = new XMLHttpRequest();
-
-    // Track upload progress
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) {
-        const percentComplete = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percentComplete);
-      }
-    });
-
-    // Handle upload completion
-    xhr.addEventListener('load', () => {
-      if (xhr.status === 200) {
-        const response = JSON.parse(xhr.responseText);
-        setIsUploading(false);
-        setUploadComplete(true);
-        setGeneratedLink(response.link);
-      } else {
-        const error = JSON.parse(xhr.responseText);
-        throw new Error(error.error || 'Upload failed');
-      }
-    });
-
-    // Handle upload errors
-    xhr.addEventListener('error', () => {
-      throw new Error('Upload failed. Please check your connection.');
-    });
-
-    // Send the upload request
-    xhr.open('POST', '/api/upload');
-    xhr.send(formData);
-
-  } catch (error) {
-    console.error('Upload error:', error);
-    setIsUploading(false);
-    setUploadProgress(0);
-    
-    // Show error to user 
-    alert(error.message || 'Upload failed. Please try again.');
-  }
-};
-
   // File handling functions
   const handleDrag = (e) => {
     e.preventDefault();
@@ -219,30 +159,68 @@ const UploadPage = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const simulateUpload = () => {
+  // Main upload function - connects to the API
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    
     setIsUploading(true);
     setUploadProgress(0);
-    
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      
+      if (password && password.trim()) {
+        formData.append('password', password.trim());
+      }
+      
+      formData.append('expirationTime', expirationTime);
+
+      // Create XMLHttpRequest to track upload progress
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percentComplete);
+        }
+      });
+
+      // Handle upload completion
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
           setIsUploading(false);
           setUploadComplete(true);
-          // Generate a dummy link for demo
-          setGeneratedLink(`https://clouddey.com/file/${Math.random().toString(36).substr(2, 9)}`);
-          return 100;
+          setGeneratedLink(response.link);
+        } else {
+          const error = JSON.parse(xhr.responseText);
+          throw new Error(error.error || 'Upload failed');
         }
-        return prev + 10;
       });
-    }, 200);
+
+      // Handle upload errors
+      xhr.addEventListener('error', () => {
+        throw new Error('Upload failed. Please check your connection.');
+      });
+
+      // Send the upload request
+      xhr.open('POST', '/api/upload');
+      xhr.send(formData);
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
+      
+      // Show error to user
+      alert(error.message || 'Upload failed. Please try again.');
+    }
   };
 
-  const handleUpload = () => {
-    if (!selectedFile) return;
-    simulateUpload();
-  };
-
+  // Copy link to clipboard function
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(generatedLink);
@@ -250,9 +228,24 @@ const UploadPage = () => {
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       console.error('Failed to copy: ', err);
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = generatedLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy failed:', fallbackErr);
+        alert('Failed to copy link. Please copy manually.');
+      }
     }
   };
 
+  // Reset upload state for new upload
   const resetUpload = () => {
     setSelectedFile(null);
     setPassword('');
