@@ -1,10 +1,14 @@
-const { getFile, deleteFile } = require('./utils/storage.js');
-const { verifyPassword, isExpired } = require('./utils/crypto.js');
-const { getFileRecord, updateFileRecord, deleteFileRecord } = require('./utils/database.js');
+const fs = require('fs');
+const path = require('path');
+
+const STORAGE_DIR = '/tmp/clouddey-files';
+
+function isExpired(expirationDate) {
+  return new Date() > new Date(expirationDate);
+}
 
 module.exports = async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -19,82 +23,112 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Get file metadata
-    const fileRecord = await getFileRecord(fileId);
+    const infoPath = path.join(STORAGE_DIR, `${fileId}.json`);
     
-    if (!fileRecord) {
+    if (!fs.existsSync(infoPath)) {
       return res.status(404).json({ error: 'File not found' });
     }
 
+    const fileInfo = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+
     // Check if file has expired
-    if (isExpired(fileRecord.expiresAt)) {
-      // Clean up expired file
-      await deleteFile(fileId);
-      await deleteFileRecord(fileId);
-      return res.status(404).json({ error: 'File has expired' });
+    if (isExpired(fileInfo.expiresAt)) {
+      // Clean up expired files
+      try {
+        const filePath = path.join(STORAGE_DIR, fileId);
+        fs.unlinkSync(filePath);
+        fs.unlinkSync(infoPath);
+      } catch (e) {}
+      return res.status(410).json({ error: 'File has expired' }); // Using 410 Gone for expired files
     }
 
-    // Handle GET request - return file info (for download page)
+    // Check if max attempts already reached
+    if (fileInfo.hasPassword && fileInfo.attemptCount >= 2) {
+      return res.status(403).json({ 
+        error: 'Maximum password attempts exceeded. File has been permanently deleted.',
+        remainingAttempts: 0
+      });
+    }
+
     if (req.method === 'GET') {
       return res.status(200).json({
-        originalName: fileRecord.originalName,
-        size: fileRecord.size,
-        hasPassword: !!fileRecord.passwordHash,
-        expiresAt: fileRecord.expiresAt,
-        downloadCount: fileRecord.downloadCount,
+        originalName: fileInfo.originalName,
+        size: fileInfo.size,
+        hasPassword: fileInfo.hasPassword,
+        expiresAt: fileInfo.expiresAt,
+        remainingAttempts: fileInfo.hasPassword ? Math.max(0, 2 - (fileInfo.attemptCount || 0)) : null
       });
     }
 
-    // Handle POST request - actual file download
     if (req.method === 'POST') {
-      const { password } = req.body;
-
-      // Verify password if required
-      if (fileRecord.passwordHash) {
+      // Check password if required
+      if (fileInfo.hasPassword) {
+        const { password } = req.body;
+        
         if (!password) {
-          return res.status(401).json({ error: 'Password required' });
+          return res.status(400).json({ 
+            error: 'Password is required',
+            remainingAttempts: Math.max(0, 2 - (fileInfo.attemptCount || 0))
+          });
         }
-
-        const passwordValid = await verifyPassword(password, fileRecord.passwordHash);
-        if (!passwordValid) {
-          return res.status(401).json({ error: 'Invalid password' });
+        
+        if (password !== fileInfo.password) {
+          // Increment attempt count
+          fileInfo.attemptCount = (fileInfo.attemptCount || 0) + 1;
+          
+          if (fileInfo.attemptCount >= 2) {
+            // Max attempts reached - delete file and save the state
+            try {
+              const filePath = path.join(STORAGE_DIR, fileId);
+              fs.unlinkSync(filePath);
+              // Keep the info file but mark it as exhausted
+              fs.writeFileSync(infoPath, JSON.stringify(fileInfo, null, 2));
+            } catch (e) {
+              console.error('Error deleting file:', e);
+            }
+            return res.status(403).json({ 
+              error: 'Maximum password attempts exceeded. File has been permanently deleted.',
+              remainingAttempts: 0
+            });
+          } else {
+            // Save updated attempt count
+            fs.writeFileSync(infoPath, JSON.stringify(fileInfo, null, 2));
+            const remaining = 2 - fileInfo.attemptCount;
+            return res.status(401).json({ 
+              error: 'Invalid password',
+              remainingAttempts: remaining
+            });
+          }
         }
       }
-
-      // Get file from storage
-      const fileData = await getFile(fileId);
-      if (!fileData.success) {
-        return res.status(404).json({ error: 'File not found in storage' });
+      
+      const filePath = path.join(STORAGE_DIR, fileId);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File data not found' });
       }
 
-      // Increment download count
-      await updateFileRecord(fileId, {
-        downloadCount: fileRecord.downloadCount + 1,
-      });
-
-      // Delete file after download if configured
-      if (fileRecord.deleteAfterDownload) {
-        // Schedule deletion (don't wait for it to complete)
-        setTimeout(async () => {
-          await deleteFile(fileId);
-          await deleteFileRecord(fileId);
-        }, 1000);
+      const fileBuffer = fs.readFileSync(filePath);
+      
+      // Delete files after successful download
+      try {
+        fs.unlinkSync(filePath);
+        fs.unlinkSync(infoPath);
+      } catch (deleteError) {
+        console.error('Error deleting files:', deleteError);
       }
-
-      // Set response headers for file download
-      res.setHeader('Content-Type', fileData.contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${fileRecord.originalName}"`);
-      res.setHeader('Content-Length', fileData.data.length);
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-
-      // Send file data
-      return res.status(200).send(fileData.data);
+      
+      res.setHeader('Content-Type', fileInfo.contentType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.originalName}"`);
+      res.setHeader('Content-Length', fileBuffer.length);
+      
+      return res.status(200).send(fileBuffer);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (error) {
     console.error('Download error:', error);
-    res.status(500).json({ error: 'Download failed. Please try again.' });
+    return res.status(500).json({ error: 'Download failed: ' + error.message });
   }
 }

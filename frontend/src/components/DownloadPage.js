@@ -1,15 +1,142 @@
-// src/components/DownloadPage.js
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo1.webp';
 
 const DownloadPage = () => {
   const { fileId } = useParams();
+  const navigate = useNavigate();
   const [fileInfo, setFileInfo] = useState(null);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [remainingAttempts, setRemainingAttempts] = useState(null);
+  const [language, setLanguage] = useState('en');
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [isExpired, setIsExpired] = useState(false);
+
+  const languages = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'zh', name: '中文', flag: '🇨🇳' },
+    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+    { code: 'ar', name: 'العربية', flag: '🇸🇦' }
+  ];
+
+  const getCurrentLanguage = () => {
+    return languages.find(lang => lang.code === language) || languages[0];
+  };
+
+  const selectLanguage = (langCode) => {
+    setLanguage(langCode);
+    setShowLanguageDropdown(false);
+  };
+
+  const handleNavigation = (section) => {
+    navigate(`/#${section}`);
+    setTimeout(() => {
+      const element = document.getElementById(section);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  // Format time remaining
+  const formatTimeRemaining = (seconds) => {
+    if (seconds <= 0) return 'Expired';
+    
+    const days = Math.floor(seconds / (24 * 3600));
+    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
+  // Calculate time remaining
+  useEffect(() => {
+    if (fileInfo && fileInfo.expiresAt) {
+      const updateTimer = () => {
+        const now = new Date().getTime();
+        const expiry = new Date(fileInfo.expiresAt).getTime();
+        const remaining = Math.floor((expiry - now) / 1000);
+        
+        if (remaining <= 0) {
+          setTimeRemaining(0);
+          setIsExpired(true);
+        } else {
+          setTimeRemaining(remaining);
+          setIsExpired(false);
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [fileInfo]);
+
+  const content = {
+    en: {
+      nav: { home: 'Home', about: 'About', contact: 'Contact' },
+      download: {
+        title: 'Download File',
+        passwordRequired: 'Password Required',
+        passwordPlaceholder: 'Enter file password',
+        downloadButton: 'Download File',
+        downloading: 'Downloading...',
+        securityNote: 'This file will be deleted after download for security.',
+        timeRemaining: 'Time remaining',
+        expired: 'File has expired',
+        success: {
+          title: 'Download Complete!',
+          message: 'Your file has been downloaded successfully.',
+          redirectNote: 'This file has been permanently deleted for security. Redirecting to home page...'
+        },
+        error: {
+          notAvailable: 'File Not Available',
+          noMoreAttempts: 'No more download attempts available'
+        }
+      }
+    },
+    es: {
+      nav: { home: 'Inicio', about: 'Acerca de', contact: 'Contacto' },
+      download: {
+        title: 'Descargar Archivo',
+        passwordRequired: 'Contraseña Requerida',
+        passwordPlaceholder: 'Ingresa la contraseña del archivo',
+        downloadButton: 'Descargar Archivo',
+        downloading: 'Descargando...',
+        securityNote: 'Este archivo será eliminado después de la descarga por seguridad.',
+        timeRemaining: 'Tiempo restante',
+        expired: 'El archivo ha expirado',
+        success: {
+          title: '¡Descarga Completa!',
+          message: 'Tu archivo ha sido descargado exitosamente.',
+          redirectNote: 'Este archivo ha sido eliminado permanentemente por seguridad. Redirigiendo a la página de inicio...'
+        },
+        error: {
+          notAvailable: 'Archivo No Disponible',
+          noMoreAttempts: 'No hay más intentos de descarga disponibles'
+        }
+      }
+    }
+  };
+
+  const currentContent = content[language] || content.en;
 
   useEffect(() => {
     fetchFileInfo();
@@ -49,13 +176,11 @@ const DownloadPage = () => {
       });
 
       if (response.ok) {
-        // Get filename from headers
         const contentDisposition = response.headers.get('Content-Disposition');
         const filename = contentDisposition
           ? contentDisposition.split('filename=')[1].replace(/"/g, '')
           : fileInfo.originalName || 'download';
 
-        // Download the file
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         
@@ -68,11 +193,23 @@ const DownloadPage = () => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        // Show success message
-        alert('Download started! This file has been deleted for security.');
+        setShowSuccess(true);
+        setTimeout(() => {
+          navigate('/');
+        }, 3000);
+
       } else {
         const error = await response.json();
-        setError(error.error || 'Download failed');
+        if (error.remainingAttempts !== undefined) {
+          setRemainingAttempts(error.remainingAttempts);
+          if (error.remainingAttempts === 0) {
+            setError('Maximum password attempts exceeded. File has been permanently deleted.');
+          } else {
+            setError(`${error.error}. ${error.remainingAttempts} attempt(s) remaining.`);
+          }
+        } else {
+          setError(error.error || 'Download failed');
+        }
       }
     } catch (err) {
       setError('Download failed. Please try again.');
@@ -81,64 +218,190 @@ const DownloadPage = () => {
     }
   };
 
+  // Determine if we should show the download form
+  const showDownloadForm = !showSuccess && !isExpired && (remainingAttempts === null || remainingAttempts > 0);
+  
+  // Determine if file is completely unavailable
+  const fileUnavailable = isExpired || (remainingAttempts !== null && remainingAttempts === 0) || (error && !fileInfo);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Navigation */}
       <nav className="bg-white shadow-sm px-6 py-2">
-        <div className="max-w-7xl mx-auto flex items-center">
-          <img src={logo} alt="Clouddey Logo" className="w-16 h-16 object-contain" />
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
+            <img 
+              src={logo} 
+              alt="Clouddey Logo" 
+              className="w-24 h-24 object-contain"
+            />
+          </div>
+
+          <div className="flex items-center space-x-6">
+            <button 
+              onClick={() => navigate('/')}
+              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
+            >
+              {currentContent.nav.home}
+            </button>
+            <button 
+              onClick={() => handleNavigation('about')}
+              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
+            >
+              {currentContent.nav.about}
+            </button>
+            <button 
+              onClick={() => handleNavigation('contact')}
+              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
+            >
+              {currentContent.nav.contact}
+            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-xl"
+              >
+                <span className="text-base">{getCurrentLanguage().flag}</span>
+                <span>{getCurrentLanguage().name}</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showLanguageDropdown && (
+                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[140px]">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => selectLanguage(lang.code)}
+                      className={`w-full text-left px-3 py-1.5 hover:bg-gray-100 flex items-center space-x-2 text-xl ${
+                        language === lang.code ? 'bg-orange-50 text-clouddey-orange' : 'text-gray-700'
+                      }`}
+                    >
+                      <span className="text-base">{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </nav>
 
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        {error ? (
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">File Not Available</h1>
-            <p className="text-gray-600">{error}</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">Download File</h1>
-              <p className="text-xl font-semibold text-gray-700">{fileInfo.originalName}</p>
-              <p className="text-gray-500">{(fileInfo.size / 1024 / 1024).toFixed(2)} MB</p>
-            </div>
-
-            {fileInfo.hasPassword && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password Required
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter file password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-clouddey-orange focus:border-clouddey-orange"
-                />
+      {/* Main Content */}
+      <div className="flex-grow flex items-center justify-center px-6 py-12">
+        <div className="max-w-2xl w-full">
+          {showSuccess ? (
+            /* Success State */
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-            )}
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">{currentContent.download.success.title}</h1>
+              <p className="text-gray-600 mb-4">{currentContent.download.success.message}</p>
+              <p className="text-sm text-gray-500 mb-6">{currentContent.download.success.redirectNote}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-clouddey-orange h-2 rounded-full animate-pulse" style={{width: '100%'}}></div>
+              </div>
+            </div>
+          ) : fileUnavailable ? (
+            /* File Unavailable State */
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                {isExpired ? currentContent.download.expired : currentContent.download.error.notAvailable}
+              </h1>
+              <p className="text-gray-600">
+                {isExpired 
+                  ? 'This file has expired and is no longer available for download.'
+                  : remainingAttempts === 0 
+                    ? 'Maximum password attempts exceeded. File has been permanently deleted.'
+                    : error
+                }
+              </p>
+            </div>
+          ) : (
+            /* Download Form State */
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">{currentContent.download.title}</h1>
+                <p className="text-xl font-semibold text-gray-700">{fileInfo?.originalName}</p>
+                <p className="text-gray-500">{fileInfo ? (fileInfo.size / 1024 / 1024).toFixed(2) : 0} MB</p>
+                
+                {/* Expiration Timer */}
+                {timeRemaining !== null && !isExpired && (
+                  <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      <span className="font-medium">{currentContent.download.timeRemaining}:</span> {formatTimeRemaining(timeRemaining)}
+                    </p>
+                  </div>
+                )}
+              </div>
 
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              className="w-full bg-clouddey-orange hover:bg-clouddey-orange-hover disabled:bg-gray-400 text-white py-4 rounded-lg font-semibold text-lg transition-colors"
-            >
-              {downloading ? 'Downloading...' : 'Download File'}
-            </button>
+              {/* Error Display */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 text-sm">{error}</p>
+                </div>
+              )}
 
-            <p className="text-center text-sm text-gray-500 mt-4">
-              This file will be deleted after download for security.
-            </p>
-          </div>
-        )}
+              {/* Password Input */}
+              {fileInfo?.hasPassword && showDownloadForm && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {currentContent.download.passwordRequired}
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={currentContent.download.passwordPlaceholder}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-clouddey-orange focus:border-clouddey-orange"
+                  />
+                  {remainingAttempts !== null && remainingAttempts < 3 && remainingAttempts > 0 && (
+                    <p className="text-sm text-orange-600 mt-2">
+                      {remainingAttempts} attempt(s) remaining
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Download Button */}
+              {showDownloadForm && (
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="w-full bg-clouddey-orange hover:bg-clouddey-orange-hover disabled:bg-gray-400 text-white py-4 rounded-lg font-semibold text-lg transition-colors"
+                >
+                  {downloading ? currentContent.download.downloading : currentContent.download.downloadButton}
+                </button>
+              )}
+
+              {showDownloadForm && (
+                <p className="text-center text-sm text-gray-500 mt-4">
+                  {currentContent.download.securityNote}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-clouddey-blue text-white px-6 py-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-white">© 2025 Clouddey. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 };
