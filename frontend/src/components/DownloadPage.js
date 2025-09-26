@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import logo from '../assets/logo1.webp';
+import { useLanguage } from '../context/LanguageContext';
+import Navigation from '../components/Navigation';
 
 const DownloadPage = () => {
   const { fileId } = useParams();
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [fileInfo, setFileInfo] = useState(null);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
@@ -12,39 +14,8 @@ const DownloadPage = () => {
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(null);
-  const [language, setLanguage] = useState('en');
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
-
-  const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
-    { code: 'ja', name: '日本語', flag: '🇯🇵' },
-    { code: 'ar', name: 'العربية', flag: '🇸🇦' }
-  ];
-
-  const getCurrentLanguage = () => {
-    return languages.find(lang => lang.code === language) || languages[0];
-  };
-
-  const selectLanguage = (langCode) => {
-    setLanguage(langCode);
-    setShowLanguageDropdown(false);
-  };
-
-  const handleNavigation = (section) => {
-    navigate(`/#${section}`);
-    setTimeout(() => {
-      const element = document.getElementById(section);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  };
 
   // Format time remaining
   const formatTimeRemaining = (seconds) => {
@@ -131,6 +102,116 @@ const DownloadPage = () => {
         error: {
           notAvailable: 'Archivo No Disponible',
           noMoreAttempts: 'No hay más intentos de descarga disponibles'
+        }
+      }
+    },
+    fr: {
+      nav: { home: 'Accueil', about: 'À propos', contact: 'Contact' },
+      download: {
+        title: 'Télécharger le Fichier',
+        passwordRequired: 'Mot de passe Requis',
+        passwordPlaceholder: 'Entrez le mot de passe du fichier',
+        downloadButton: 'Télécharger le Fichier',
+        downloading: 'Téléchargement...',
+        securityNote: 'Ce fichier sera supprimé après téléchargement pour la sécurité.',
+        timeRemaining: 'Temps restant',
+        expired: 'Le fichier a expiré',
+        success: {
+          title: 'Téléchargement Terminé!',
+          message: 'Votre fichier a été téléchargé avec succès.',
+          redirectNote: 'Ce fichier a été définitivement supprimé pour la sécurité. Redirection vers la page d\'accueil...'
+        },
+        error: {
+          notAvailable: 'Fichier Non Disponible',
+          noMoreAttempts: 'Plus de tentatives de téléchargement disponibles'
+        }
+      }
+    },
+    de: {
+      nav: { home: 'Startseite', about: 'Über uns', contact: 'Kontakt' },
+      download: {
+        title: 'Datei Herunterladen',
+        passwordRequired: 'Passwort Erforderlich',
+        passwordPlaceholder: 'Datei-Passwort eingeben',
+        downloadButton: 'Datei Herunterladen',
+        downloading: 'Herunterladen...',
+        securityNote: 'Diese Datei wird nach dem Download aus Sicherheitsgründen gelöscht.',
+        timeRemaining: 'Verbleibende Zeit',
+        expired: 'Datei ist abgelaufen',
+        success: {
+          title: 'Download Abgeschlossen!',
+          message: 'Ihre Datei wurde erfolgreich heruntergeladen.',
+          redirectNote: 'Diese Datei wurde aus Sicherheitsgründen dauerhaft gelöscht. Weiterleitung zur Startseite...'
+        },
+        error: {
+          notAvailable: 'Datei Nicht Verfügbar',
+          noMoreAttempts: 'Keine weiteren Download-Versuche verfügbar'
+        }
+      }
+    },
+    zh: {
+      nav: { home: '首页', about: '关于', contact: '联系' },
+      download: {
+        title: '下载文件',
+        passwordRequired: '需要密码',
+        passwordPlaceholder: '输入文件密码',
+        downloadButton: '下载文件',
+        downloading: '下载中...',
+        securityNote: '为了安全，此文件将在下载后删除。',
+        timeRemaining: '剩余时间',
+        expired: '文件已过期',
+        success: {
+          title: '下载完成！',
+          message: '您的文件已成功下载。',
+          redirectNote: '为了安全，此文件已被永久删除。正在重定向到首页...'
+        },
+        error: {
+          notAvailable: '文件不可用',
+          noMoreAttempts: '没有更多下载尝试机会'
+        }
+      }
+    },
+    ja: {
+      nav: { home: 'ホーム', about: '概要', contact: 'お問い合わせ' },
+      download: {
+        title: 'ファイルをダウンロード',
+        passwordRequired: 'パスワードが必要',
+        passwordPlaceholder: 'ファイルのパスワードを入力',
+        downloadButton: 'ファイルをダウンロード',
+        downloading: 'ダウンロード中...',
+        securityNote: 'セキュリティのため、このファイルはダウンロード後に削除されます。',
+        timeRemaining: '残り時間',
+        expired: 'ファイルの期限が切れました',
+        success: {
+          title: 'ダウンロード完了！',
+          message: 'ファイルが正常にダウンロードされました。',
+          redirectNote: 'セキュリティのため、このファイルは永久に削除されました。ホームページにリダイレクト中...'
+        },
+        error: {
+          notAvailable: 'ファイルが利用できません',
+          noMoreAttempts: 'これ以上のダウンロード試行はできません'
+        }
+      }
+    },
+    ar: {
+      nav: { home: 'الرئيسية', about: 'حول', contact: 'اتصال' },
+      download: {
+        title: 'تحميل الملف',
+        passwordRequired: 'كلمة المرور مطلوبة',
+        passwordPlaceholder: 'أدخل كلمة مرور الملف',
+        downloadButton: 'تحميل الملف',
+        downloading: 'جاري التحميل...',
+        securityNote: 'سيتم حذف هذا الملف بعد التحميل للأمان.',
+        timeRemaining: 'الوقت المتبقي',
+        expired: 'انتهت صلاحية الملف',
+        success: {
+          title: 'اكتمل التحميل!',
+          message: 'تم تحميل ملفك بنجاح.',
+          redirectNote: 'تم حذف هذا الملف نهائياً للأمان. إعادة توجيه إلى الصفحة الرئيسية...'
+        },
+        error: {
+          notAvailable: 'الملف غير متاح',
+          noMoreAttempts: 'لا توجد محاولات تحميل أخرى متاحة'
         }
       }
     }
@@ -228,68 +309,8 @@ const DownloadPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm px-6 py-2">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-            <img 
-              src={logo} 
-              alt="Clouddey Logo" 
-              className="w-24 h-24 object-contain"
-            />
-          </div>
-
-          <div className="flex items-center space-x-6">
-            <button 
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.home}
-            </button>
-            <button 
-              onClick={() => handleNavigation('about')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.about}
-            </button>
-            <button 
-              onClick={() => handleNavigation('contact')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.contact}
-            </button>
-            <div className="relative">
-              <button 
-                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-xl"
-              >
-                <span className="text-base">{getCurrentLanguage().flag}</span>
-                <span>{getCurrentLanguage().name}</span>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              {showLanguageDropdown && (
-                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[140px]">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => selectLanguage(lang.code)}
-                      className={`w-full text-left px-3 py-1.5 hover:bg-gray-100 flex items-center space-x-2 text-xl ${
-                        language === lang.code ? 'bg-orange-50 text-clouddey-orange' : 'text-gray-700'
-                      }`}
-                    >
-                      <span className="text-base">{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Use Navigation Component */}
+      <Navigation currentContent={currentContent} />
 
       {/* Main Content */}
       <div className="flex-grow flex items-center justify-center px-6 py-12">

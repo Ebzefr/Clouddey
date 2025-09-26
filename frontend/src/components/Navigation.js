@@ -1,12 +1,14 @@
 // src/components/Navigation.js
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo1.webp';
 
-const Navigation = ({ language, setLanguage, currentContent }) => {
+const Navigation = ({ currentContent }) => {
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { language, setLanguage } = useLanguage();
 
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -90,6 +92,7 @@ const Navigation = ({ language, setLanguage, currentContent }) => {
             </button>
           )}
           
+          {/* Language Selector */}
           <div className="relative">
             <button 
               onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
@@ -109,7 +112,9 @@ const Navigation = ({ language, setLanguage, currentContent }) => {
                     key={lang.code}
                     onClick={() => selectLanguage(lang.code)}
                     className={`w-full text-left px-3 py-1.5 hover:bg-gray-100 flex items-center space-x-2 text-xl ${
-                      language === lang.code ? 'bg-orange-50 text-clouddey-orange' : 'text-gray-700'
+                      language === lang.code 
+                        ? 'bg-orange-50 text-clouddey-orange' 
+                        : 'text-gray-700'
                     }`}
                   >
                     <span className="text-base">{lang.flag}</span>

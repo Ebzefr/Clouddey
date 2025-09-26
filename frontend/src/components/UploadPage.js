@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import logo from '../assets/logo1.webp';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
+import Navigation from '../components/Navigation';
 
 const UploadPage = () => {
-  const [language, setLanguage] = useState('en');
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const { language } = useLanguage();
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -18,44 +18,12 @@ const UploadPage = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
-    { code: 'ja', name: '日本語', flag: '🇯🇵' },
-    { code: 'ar', name: 'العربية', flag: '🇸🇦' }
-  ];
-
-  const selectLanguage = (langCode) => {
-    setLanguage(langCode);
-    setShowLanguageDropdown(false);
-  };
-
-  const getCurrentLanguage = () => {
-    return languages.find(lang => lang.code === language) || languages[0];
-  };
-
-  // Smart navigation function for About/Contact
-  const handleNavigation = (section) => {
-    navigate(`/#${section}`);
-    // Small delay to ensure page loads before scrolling
-    setTimeout(() => {
-      const element = document.getElementById(section);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  };
-
   const content = {
     en: {
       nav: { 
         home: 'Home', 
         about: 'About',
-        contact: 'Contact',
-        language: 'Language' 
+        contact: 'Contact'
       },
       upload: {
         title: 'Upload & Share Files',
@@ -87,8 +55,7 @@ const UploadPage = () => {
       nav: { 
         home: 'Inicio', 
         about: 'Acerca de',
-        contact: 'Contacto',
-        language: 'Idioma' 
+        contact: 'Contacto'
       },
       upload: {
         title: 'Subir y Compartir Archivos',
@@ -113,6 +80,166 @@ const UploadPage = () => {
           '6hours': '6 horas',
           '24hours': '24 horas',
           '7days': '7 días'
+        }
+      }
+    },
+    fr: {
+      nav: { 
+        home: 'Accueil', 
+        about: 'À propos',
+        contact: 'Contact'
+      },
+      upload: {
+        title: 'Télécharger et Partager des Fichiers',
+        subtitle: 'Téléchargez des fichiers en toute sécurité et obtenez des liens partageables',
+        dragText: 'Glissez et déposez les fichiers ici',
+        orText: 'ou',
+        browseText: 'Parcourir les Fichiers',
+        selectedFile: 'Fichier Sélectionné:',
+        password: 'Mot de passe (Optionnel)',
+        passwordPlaceholder: 'Entrez un mot de passe pour protéger votre fichier',
+        expiration: 'Délai d\'Expiration',
+        uploadButton: 'Télécharger le Fichier',
+        uploading: 'Téléchargement...',
+        success: 'Téléchargement Terminé!',
+        linkGenerated: 'Votre lien partageable:',
+        copyLink: 'Copier le Lien',
+        copied: 'Copié!',
+        newUpload: 'Télécharger un Autre Fichier',
+        expirationOptions: {
+          '15min': '15 minutes',
+          '1hour': '1 heure',
+          '6hours': '6 heures',
+          '24hours': '24 heures',
+          '7days': '7 jours'
+        }
+      }
+    },
+    de: {
+      nav: { 
+        home: 'Startseite', 
+        about: 'Über uns',
+        contact: 'Kontakt'
+      },
+      upload: {
+        title: 'Dateien Hochladen & Teilen',
+        subtitle: 'Laden Sie Dateien sicher hoch und erhalten Sie teilbare Links',
+        dragText: 'Dateien hier hineinziehen',
+        orText: 'oder',
+        browseText: 'Dateien Durchsuchen',
+        selectedFile: 'Ausgewählte Datei:',
+        password: 'Passwort (Optional)',
+        passwordPlaceholder: 'Passwort zum Schutz Ihrer Datei eingeben',
+        expiration: 'Ablaufzeit',
+        uploadButton: 'Datei Hochladen',
+        uploading: 'Hochladen...',
+        success: 'Upload Abgeschlossen!',
+        linkGenerated: 'Ihr teilbarer Link:',
+        copyLink: 'Link Kopieren',
+        copied: 'Kopiert!',
+        newUpload: 'Weitere Datei Hochladen',
+        expirationOptions: {
+          '15min': '15 Minuten',
+          '1hour': '1 Stunde',
+          '6hours': '6 Stunden',
+          '24hours': '24 Stunden',
+          '7days': '7 Tage'
+        }
+      }
+    },
+    zh: {
+      nav: { 
+        home: '首页', 
+        about: '关于',
+        contact: '联系'
+      },
+      upload: {
+        title: '上传和分享文件',
+        subtitle: '安全上传文件并获取可分享的链接',
+        dragText: '将文件拖放到这里',
+        orText: '或',
+        browseText: '浏览文件',
+        selectedFile: '已选择文件:',
+        password: '密码（可选）',
+        passwordPlaceholder: '输入密码保护您的文件',
+        expiration: '过期时间',
+        uploadButton: '上传文件',
+        uploading: '上传中...',
+        success: '上传完成！',
+        linkGenerated: '您的可分享链接:',
+        copyLink: '复制链接',
+        copied: '已复制！',
+        newUpload: '上传另一个文件',
+        expirationOptions: {
+          '15min': '15分钟',
+          '1hour': '1小时',
+          '6hours': '6小时',
+          '24hours': '24小时',
+          '7days': '7天'
+        }
+      }
+    },
+    ja: {
+      nav: { 
+        home: 'ホーム', 
+        about: '概要',
+        contact: 'お問い合わせ'
+      },
+      upload: {
+        title: 'ファイルアップロード & 共有',
+        subtitle: 'ファイルを安全にアップロードし、共有可能なリンクを取得',
+        dragText: 'ファイルをここにドラッグ&ドロップ',
+        orText: 'または',
+        browseText: 'ファイルを参照',
+        selectedFile: '選択されたファイル:',
+        password: 'パスワード（オプション）',
+        passwordPlaceholder: 'ファイルを保護するパスワードを入力',
+        expiration: '有効期限',
+        uploadButton: 'ファイルをアップロード',
+        uploading: 'アップロード中...',
+        success: 'アップロード完了！',
+        linkGenerated: '共有可能なリンク:',
+        copyLink: 'リンクをコピー',
+        copied: 'コピーしました！',
+        newUpload: '別のファイルをアップロード',
+        expirationOptions: {
+          '15min': '15分',
+          '1hour': '1時間',
+          '6hours': '6時間',
+          '24hours': '24時間',
+          '7days': '7日'
+        }
+      }
+    },
+    ar: {
+      nav: { 
+        home: 'الرئيسية', 
+        about: 'حول',
+        contact: 'اتصال'
+      },
+      upload: {
+        title: 'رفع ومشاركة الملفات',
+        subtitle: 'ارفع الملفات بأمان واحصل على روابط قابلة للمشاركة',
+        dragText: 'اسحب وأفلت الملفات هنا',
+        orText: 'أو',
+        browseText: 'تصفح الملفات',
+        selectedFile: 'الملف المحدد:',
+        password: 'كلمة المرور (اختيارية)',
+        passwordPlaceholder: 'أدخل كلمة مرور لحماية ملفك',
+        expiration: 'وقت انتهاء الصلاحية',
+        uploadButton: 'رفع الملف',
+        uploading: 'جاري الرفع...',
+        success: 'اكتمل الرفع!',
+        linkGenerated: 'رابطك القابل للمشاركة:',
+        copyLink: 'نسخ الرابط',
+        copied: 'تم النسخ!',
+        newUpload: 'رفع ملف آخر',
+        expirationOptions: {
+          '15min': '15 دقيقة',
+          '1hour': '1 ساعة',
+          '6hours': '6 ساعات',
+          '24hours': '24 ساعة',
+          '7days': '7 أيام'
         }
       }
     }
@@ -259,70 +386,8 @@ const UploadPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm px-6 py-2">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Logo */}
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-            <img 
-              src={logo} 
-              alt="Clouddey Logo" 
-              className="w-24 h-24 object-contain"
-            />
-          </div>
-
-          {/* Navigation Items */}
-          <div className="flex items-center space-x-6">
-            <button 
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.home}
-            </button>
-            <button 
-              onClick={() => handleNavigation('about')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.about}
-            </button>
-            <button 
-              onClick={() => handleNavigation('contact')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.contact}
-            </button>
-            <div className="relative">
-              <button 
-                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-xl"
-              >
-                <span className="text-base">{getCurrentLanguage().flag}</span>
-                <span>{getCurrentLanguage().name}</span>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              {showLanguageDropdown && (
-                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[140px]">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => selectLanguage(lang.code)}
-                      className={`w-full text-left px-3 py-1.5 hover:bg-gray-100 flex items-center space-x-2 text-xl ${
-                        language === lang.code ? 'bg-orange-50 text-clouddey-orange' : 'text-gray-700'
-                      }`}
-                    >
-                      <span className="text-base">{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Use Navigation Component */}
+      <Navigation currentContent={currentContent} />
 
       {/* Main Upload Section */}
       <div className="max-w-4xl mx-auto px-6 py-12">

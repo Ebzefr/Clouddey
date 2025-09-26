@@ -1,47 +1,20 @@
-import React, { useState } from 'react';
-import logo from '../assets/logo1.webp'; 
+import React from 'react';
 import illustration from '../assets/hero-image.svg';
 import card1 from '../assets/file-sharing.svg';
 import card2 from '../assets/sync-across.svg';
+import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
+import Navigation from '../components/Navigation';
 
 const HomePage = () => {
-  const [language, setLanguage] = useState('en');
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const navigate = useNavigate();
-
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
-    { code: 'ja', name: '日本語', flag: '🇯🇵' },
-    { code: 'ar', name: 'العربية', flag: '🇸🇦' }
-  ];
-
-  const selectLanguage = (langCode) => {
-    setLanguage(langCode);
-    setShowLanguageDropdown(false);
-  };
-
-  const getCurrentLanguage = () => {
-    return languages.find(lang => lang.code === language) || languages[0];
-  };
+  const { language } = useLanguage();
 
   const content = {
     en: {
       nav: {
         about: 'About',
-        contact: 'Contact',
-        language: 'Language'
+        contact: 'Contact'
       },
       hero: {
         title: 'An innovative approach for storing sharing your files online',
@@ -68,8 +41,7 @@ const HomePage = () => {
     es: {
       nav: {
         about: 'Acerca de',
-        contact: 'Contacto',
-        language: 'Idioma'
+        contact: 'Contacto'
       },
       hero: {
         title: 'Un enfoque innovador para almacenar y compartir tus archivos en línea',
@@ -96,8 +68,7 @@ const HomePage = () => {
     fr: {
       nav: {
         about: 'À propos',
-        contact: 'Contact',
-        language: 'Langue'
+        contact: 'Contact'
       },
       hero: {
         title: 'Une approche innovante pour stocker et partager vos fichiers en ligne',
@@ -124,8 +95,7 @@ const HomePage = () => {
     de: {
       nav: {
         about: 'Über uns',
-        contact: 'Kontakt',
-        language: 'Sprache'
+        contact: 'Kontakt'
       },
       hero: {
         title: 'Ein innovativer Ansatz zum Speichern und Teilen Ihrer Dateien online',
@@ -152,8 +122,7 @@ const HomePage = () => {
     zh: {
       nav: {
         about: '关于',
-        contact: '联系',
-        language: '语言'
+        contact: '联系'
       },
       hero: {
         title: '在线存储和分享文件的创新方法',
@@ -180,8 +149,7 @@ const HomePage = () => {
     ja: {
       nav: {
         about: '概要',
-        contact: 'お問い合わせ',
-        language: '言語'
+        contact: 'お問い合わせ'
       },
       hero: {
         title: 'オンラインでファイルを保存・共有する革新的なアプローチ',
@@ -208,8 +176,7 @@ const HomePage = () => {
     ar: {
       nav: {
         about: 'حول',
-        contact: 'اتصال',
-        language: 'اللغة'
+        contact: 'اتصال'
       },
       hero: {
         title: 'نهج مبتكر لتخزين ومشاركة ملفاتك عبر الإنترنت',
@@ -235,68 +202,12 @@ const HomePage = () => {
     }
   };
 
-  const currentContent = content[language];
+  const currentContent = content[language] || content.en;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm px-6 py-2">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Logo */}
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-            <img 
-              src={logo} 
-              alt="Clouddey Logo" 
-              className="w-24 h-24 object-contain"
-            />
-          </div>
-
-          {/* Navigation Items */}
-          <div className="flex items-center space-x-6">
-            <button 
-              onClick={() => scrollToSection('about')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.about}
-            </button>
-            <button 
-              onClick={() => scrollToSection('contact')}
-              className="text-gray-600 hover:text-gray-900 transition-colors text-xl"
-            >
-              {currentContent.nav.contact}
-            </button>
-            <div className="relative">
-              <button 
-                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors text-xl"
-              >
-                <span className="text-base">{getCurrentLanguage().flag}</span>
-                <span>{getCurrentLanguage().name}</span>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              {showLanguageDropdown && (
-                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[140px]">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => selectLanguage(lang.code)}
-                      className={`w-full text-left px-3 py-1.5 hover:bg-gray-100 flex items-center space-x-2 text-xl ${
-                        language === lang.code ? 'bg-orange-50 text-clouddey-orange' : 'text-gray-700'
-                      }`}
-                    >
-                      <span className="text-base">{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Use the Navigation component */}
+      <Navigation currentContent={currentContent} />
 
       {/* Hero Section */}
       <section className="px-6 py-20">
