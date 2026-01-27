@@ -235,8 +235,9 @@ const DownloadPage = () => {
     } finally {
       setLoading(false);
     }
-    fetchFileInfo();
   };
+      fetchFileInfo();
+
   }, [fileId]);
 
   
