@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import Navigation from '../components/Navigation';
 
@@ -19,7 +18,6 @@ const UploadPage = () => {
   const [emailSent, setEmailSent] = useState(false);
   
   const fileInputRef = useRef(null);
-  const navigate = useNavigate();
 
   const content = {
     en: {
