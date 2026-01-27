@@ -53,7 +53,7 @@ const transporter = createTransport({
     });
     
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM || 'noreply@clouddey.com',
+      from: '"Clouddey" <macamsandra@gmail.com>',
       to: recipientEmail,
       subject: `File shared with you via Clouddey - ${fileInfo.originalName}`,
       html: `
