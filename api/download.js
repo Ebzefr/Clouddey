@@ -1,5 +1,6 @@
-const fs = require('fs');
-const path = require('path');
+// api/download.js
+import fs from 'fs';
+import path from 'path';
 
 const STORAGE_DIR = '/tmp/clouddey-files';
 
@@ -7,7 +8,7 @@ function isExpired(expirationDate) {
   return new Date() > new Date(expirationDate);
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -33,13 +34,12 @@ module.exports = async function handler(req, res) {
 
     // Check if file has expired
     if (isExpired(fileInfo.expiresAt)) {
-      // Clean up expired files
       try {
         const filePath = path.join(STORAGE_DIR, fileId);
         fs.unlinkSync(filePath);
         fs.unlinkSync(infoPath);
       } catch (e) {}
-      return res.status(410).json({ error: 'File has expired' }); // Using 410 Gone for expired files
+      return res.status(410).json({ error: 'File has expired' });
     }
 
     // Check if max attempts already reached
@@ -73,15 +73,12 @@ module.exports = async function handler(req, res) {
         }
         
         if (password !== fileInfo.password) {
-          // Increment attempt count
           fileInfo.attemptCount = (fileInfo.attemptCount || 0) + 1;
           
           if (fileInfo.attemptCount >= 2) {
-            // Max attempts reached - delete file and save the state
             try {
               const filePath = path.join(STORAGE_DIR, fileId);
               fs.unlinkSync(filePath);
-              // Keep the info file but mark it as exhausted
               fs.writeFileSync(infoPath, JSON.stringify(fileInfo, null, 2));
             } catch (e) {
               console.error('Error deleting file:', e);
@@ -91,7 +88,6 @@ module.exports = async function handler(req, res) {
               remainingAttempts: 0
             });
           } else {
-            // Save updated attempt count
             fs.writeFileSync(infoPath, JSON.stringify(fileInfo, null, 2));
             const remaining = 2 - fileInfo.attemptCount;
             return res.status(401).json({ 

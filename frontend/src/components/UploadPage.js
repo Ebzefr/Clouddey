@@ -10,10 +10,13 @@ const UploadPage = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [expirationTime, setExpirationTime] = useState('1hour');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [generatedLink, setGeneratedLink] = useState('');
   const [uploadComplete, setUploadComplete] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -34,11 +37,14 @@ const UploadPage = () => {
         selectedFile: 'Selected File:',
         password: 'Password (Optional)',
         passwordPlaceholder: 'Enter password to protect your file',
+        email: 'Recipient Email (Optional)',
+        emailPlaceholder: 'Send download link via email',
         expiration: 'Expiration Time',
         uploadButton: 'Upload File',
         uploading: 'Uploading...',
         success: 'Upload Complete!',
         linkGenerated: 'Your shareable link:',
+        emailSent: 'Email notification sent successfully!',
         copyLink: 'Copy Link',
         copied: 'Copied!',
         newUpload: 'Upload Another File',
@@ -66,11 +72,14 @@ const UploadPage = () => {
         selectedFile: 'Archivo Seleccionado:',
         password: 'Contraseña (Opcional)',
         passwordPlaceholder: 'Ingresa contraseña para proteger tu archivo',
+        email: 'Email del Destinatario (Opcional)',
+        emailPlaceholder: 'Enviar enlace de descarga por email',
         expiration: 'Tiempo de Expiración',
         uploadButton: 'Subir Archivo',
         uploading: 'Subiendo...',
         success: '¡Subida Completa!',
         linkGenerated: 'Tu enlace para compartir:',
+        emailSent: '¡Notificación por email enviada exitosamente!',
         copyLink: 'Copiar Enlace',
         copied: '¡Copiado!',
         newUpload: 'Subir Otro Archivo',
@@ -98,11 +107,14 @@ const UploadPage = () => {
         selectedFile: 'Fichier Sélectionné:',
         password: 'Mot de passe (Optionnel)',
         passwordPlaceholder: 'Entrez un mot de passe pour protéger votre fichier',
+        email: 'Email du Destinataire (Optionnel)',
+        emailPlaceholder: 'Envoyer le lien de téléchargement par email',
         expiration: 'Délai d\'Expiration',
         uploadButton: 'Télécharger le Fichier',
         uploading: 'Téléchargement...',
         success: 'Téléchargement Terminé!',
         linkGenerated: 'Votre lien partageable:',
+        emailSent: 'Notification par email envoyée avec succès!',
         copyLink: 'Copier le Lien',
         copied: 'Copié!',
         newUpload: 'Télécharger un Autre Fichier',
@@ -130,11 +142,14 @@ const UploadPage = () => {
         selectedFile: 'Ausgewählte Datei:',
         password: 'Passwort (Optional)',
         passwordPlaceholder: 'Passwort zum Schutz Ihrer Datei eingeben',
+        email: 'Empfänger-Email (Optional)',
+        emailPlaceholder: 'Download-Link per Email senden',
         expiration: 'Ablaufzeit',
         uploadButton: 'Datei Hochladen',
         uploading: 'Hochladen...',
         success: 'Upload Abgeschlossen!',
         linkGenerated: 'Ihr teilbarer Link:',
+        emailSent: 'Email-Benachrichtigung erfolgreich gesendet!',
         copyLink: 'Link Kopieren',
         copied: 'Kopiert!',
         newUpload: 'Weitere Datei Hochladen',
@@ -162,11 +177,14 @@ const UploadPage = () => {
         selectedFile: '已选择文件:',
         password: '密码（可选）',
         passwordPlaceholder: '输入密码保护您的文件',
+        email: '收件人邮箱（可选）',
+        emailPlaceholder: '通过邮件发送下载链接',
         expiration: '过期时间',
         uploadButton: '上传文件',
         uploading: '上传中...',
         success: '上传完成！',
         linkGenerated: '您的可分享链接:',
+        emailSent: '邮件通知发送成功！',
         copyLink: '复制链接',
         copied: '已复制！',
         newUpload: '上传另一个文件',
@@ -194,11 +212,14 @@ const UploadPage = () => {
         selectedFile: '選択されたファイル:',
         password: 'パスワード（オプション）',
         passwordPlaceholder: 'ファイルを保護するパスワードを入力',
+        email: '受信者メール（オプション）',
+        emailPlaceholder: 'ダウンロードリンクをメールで送信',
         expiration: '有効期限',
         uploadButton: 'ファイルをアップロード',
         uploading: 'アップロード中...',
         success: 'アップロード完了！',
         linkGenerated: '共有可能なリンク:',
+        emailSent: 'メール通知が正常に送信されました！',
         copyLink: 'リンクをコピー',
         copied: 'コピーしました！',
         newUpload: '別のファイルをアップロード',
@@ -226,11 +247,14 @@ const UploadPage = () => {
         selectedFile: 'الملف المحدد:',
         password: 'كلمة المرور (اختيارية)',
         passwordPlaceholder: 'أدخل كلمة مرور لحماية ملفك',
+        email: 'البريد الإلكتروني للمستلم (اختياري)',
+        emailPlaceholder: 'إرسال رابط التحميل عبر البريد الإلكتروني',
         expiration: 'وقت انتهاء الصلاحية',
         uploadButton: 'رفع الملف',
         uploading: 'جاري الرفع...',
         success: 'اكتمل الرفع!',
         linkGenerated: 'رابطك القابل للمشاركة:',
+        emailSent: 'تم إرسال إشعار البريد الإلكتروني بنجاح!',
         copyLink: 'نسخ الرابط',
         copied: 'تم النسخ!',
         newUpload: 'رفع ملف آخر',
@@ -286,15 +310,26 @@ const UploadPage = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Main upload function - connects to the API
+  // Validate email format
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Main upload function
   const handleUpload = async () => {
     if (!selectedFile) return;
     
+    if (recipientEmail && !isValidEmail(recipientEmail)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    
     setIsUploading(true);
     setUploadProgress(0);
+    setEmailSent(false);
 
     try {
-      // Create FormData for file upload
       const formData = new FormData();
       formData.append('file', selectedFile);
       
@@ -302,12 +337,14 @@ const UploadPage = () => {
         formData.append('password', password.trim());
       }
       
+      if (recipientEmail && recipientEmail.trim()) {
+        formData.append('recipientEmail', recipientEmail.trim());
+      }
+      
       formData.append('expirationTime', expirationTime);
 
-      // Create XMLHttpRequest to track upload progress
       const xhr = new XMLHttpRequest();
 
-      // Track upload progress
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
           const percentComplete = Math.round((event.loaded / event.total) * 100);
@@ -315,25 +352,26 @@ const UploadPage = () => {
         }
       });
 
-      // Handle upload completion
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText);
           setIsUploading(false);
           setUploadComplete(true);
           setGeneratedLink(response.link);
+          
+          if (response.emailSent) {
+            setEmailSent(true);
+          }
         } else {
           const error = JSON.parse(xhr.responseText);
           throw new Error(error.error || 'Upload failed');
         }
       });
 
-      // Handle upload errors
       xhr.addEventListener('error', () => {
         throw new Error('Upload failed. Please check your connection.');
       });
 
-      // Send the upload request
       xhr.open('POST', '/api/upload');
       xhr.send(formData);
 
@@ -341,13 +379,11 @@ const UploadPage = () => {
       console.error('Upload error:', error);
       setIsUploading(false);
       setUploadProgress(0);
-      
-      // Show error to user
       alert(error.message || 'Upload failed. Please try again.');
     }
   };
 
-  // Copy link to clipboard function
+  // Copy link to clipboard
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(generatedLink);
@@ -355,7 +391,6 @@ const UploadPage = () => {
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       console.error('Failed to copy: ', err);
-      // Fallback for older browsers
       try {
         const textArea = document.createElement('textarea');
         textArea.value = generatedLink;
@@ -372,188 +407,233 @@ const UploadPage = () => {
     }
   };
 
-  // Reset upload state for new upload
+  // Reset upload state
   const resetUpload = () => {
     setSelectedFile(null);
     setPassword('');
+    setShowPassword(false);
+    setRecipientEmail('');
     setExpirationTime('1hour');
     setUploadProgress(0);
     setIsUploading(false);
     setUploadComplete(false);
     setGeneratedLink('');
     setCopySuccess(false);
+    setEmailSent(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Use Navigation Component */}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation currentContent={currentContent} />
 
-      {/* Main Upload Section */}
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            {currentContent.upload.title}
-          </h1>
-          <p className="text-xl text-gray-600">
-            {currentContent.upload.subtitle}
-          </p>
-        </div>
+      {/* Main Upload Section - flex-grow pushes footer down */}
+      <div className="flex-grow">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
+              {currentContent.upload.title}
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-600">
+              {currentContent.upload.subtitle}
+            </p>
+          </div>
 
-        {!uploadComplete ? (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            {/* File Upload Area */}
-            <div
-              className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
-                dragActive 
-                  ? 'border-clouddey-orange bg-orange-50' 
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <div className="space-y-4">
-                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
+          {!uploadComplete ? (
+            <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+              {/* File Upload Area */}
+              <div
+                className={`border-2 border-dashed rounded-xl p-8 sm:p-12 text-center transition-colors ${
+                  dragActive 
+                    ? 'border-clouddey-orange bg-orange-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <div className="space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </div>
+                  
+                  {selectedFile ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">{currentContent.upload.selectedFile}</p>
+                      <p className="text-base sm:text-lg font-semibold text-gray-900 break-all">{selectedFile.name}</p>
+                      <p className="text-sm text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-base sm:text-lg text-gray-600">{currentContent.upload.dragText}</p>
+                      <p className="text-gray-500">{currentContent.upload.orText}</p>
+                      <button
+                        onClick={handleBrowseClick}
+                        className="bg-clouddey-orange hover:bg-clouddey-orange-hover text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                      >
+                        {currentContent.upload.browseText}
+                      </button>
+                    </>
+                  )}
                 </div>
                 
-                {selectedFile ? (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600">{currentContent.upload.selectedFile}</p>
-                    <p className="text-lg font-semibold text-gray-900">{selectedFile.name}</p>
-                    <p className="text-sm text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Upload Options */}
+              {selectedFile && (
+                <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+                  {/* Password Field with Toggle */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {currentContent.upload.password}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={currentContent.upload.passwordPlaceholder}
+                        className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-clouddey-orange focus:border-clouddey-orange"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <p className="text-lg text-gray-600">{currentContent.upload.dragText}</p>
-                    <p className="text-gray-500">{currentContent.upload.orText}</p>
-                    <button
-                      onClick={handleBrowseClick}
-                      className="bg-clouddey-orange hover:bg-clouddey-orange-hover text-white px-6 py-3 rounded-lg font-medium transition-colors"
+
+                  {/* Email Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {currentContent.upload.email}
+                    </label>
+                    <input
+                      type="email"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      placeholder={currentContent.upload.emailPlaceholder}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-clouddey-orange focus:border-clouddey-orange"
+                    />
+                  </div>
+
+                  {/* Expiration Time */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {currentContent.upload.expiration}
+                    </label>
+                    <select
+                      value={expirationTime}
+                      onChange={(e) => setExpirationTime(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-clouddey-orange focus:border-clouddey-orange"
                     >
-                      {currentContent.upload.browseText}
-                    </button>
-                  </>
-                )}
+                      {Object.entries(currentContent.upload.expirationOptions).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Upload Button */}
+                  <button
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                    className="w-full bg-clouddey-orange hover:bg-clouddey-orange-hover disabled:bg-gray-400 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
+                  >
+                    {isUploading ? currentContent.upload.uploading : currentContent.upload.uploadButton}
+                  </button>
+
+                  {/* Progress Bar */}
+                  {isUploading && (
+                    <div className="space-y-2">
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-clouddey-orange h-3 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-center text-sm text-gray-600">{uploadProgress}%</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Success State */
+            <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
               
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
-            {/* Upload Options */}
-            {selectedFile && (
-              <div className="mt-8 space-y-6">
-                {/* Password Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {currentContent.upload.password}
-                  </label>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
+                {currentContent.upload.success}
+              </h2>
+              
+              {emailSent && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-800 text-sm">
+                    {currentContent.upload.emailSent}
+                  </p>
+                </div>
+              )}
+              
+              <p className="text-gray-600 mb-6">
+                {currentContent.upload.linkGenerated}
+              </p>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={currentContent.upload.passwordPlaceholder}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-clouddey-orange focus:border-clouddey-orange"
+                    type="text"
+                    value={generatedLink}
+                    readOnly
+                    className="flex-1 bg-transparent border-none outline-none text-gray-700 text-sm break-all"
                   />
-                </div>
-
-                {/* Expiration Time */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {currentContent.upload.expiration}
-                  </label>
-                  <select
-                    value={expirationTime}
-                    onChange={(e) => setExpirationTime(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-clouddey-orange focus:border-clouddey-orange"
+                  <button
+                    onClick={copyToClipboard}
+                    className="bg-clouddey-orange hover:bg-clouddey-orange-hover text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap"
                   >
-                    {Object.entries(currentContent.upload.expirationOptions).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
+                    {copySuccess ? currentContent.upload.copied : currentContent.upload.copyLink}
+                  </button>
                 </div>
-
-                {/* Upload Button */}
-                <button
-                  onClick={handleUpload}
-                  disabled={isUploading}
-                  className="w-full bg-clouddey-orange hover:bg-clouddey-orange-hover disabled:bg-gray-400 text-white py-4 rounded-lg font-semibold text-lg transition-colors"
-                >
-                  {isUploading ? currentContent.upload.uploading : currentContent.upload.uploadButton}
-                </button>
-
-                {/* Progress Bar */}
-                {isUploading && (
-                  <div className="space-y-2">
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-clouddey-orange h-3 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-center text-sm text-gray-600">{uploadProgress}%</p>
-                  </div>
-                )}
               </div>
-            )}
-          </div>
-        ) : (
-          /* Success State */
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              
+              <button
+                onClick={resetUpload}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                {currentContent.upload.newUpload}
+              </button>
             </div>
-            
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {currentContent.upload.success}
-            </h2>
-            
-            <p className="text-gray-600 mb-6">
-              {currentContent.upload.linkGenerated}
-            </p>
-            
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={generatedLink}
-                  readOnly
-                  className="flex-1 bg-transparent border-none outline-none text-gray-700"
-                />
-                <button
-                  onClick={copyToClipboard}
-                  className="bg-clouddey-orange hover:bg-clouddey-orange-hover text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  {copySuccess ? currentContent.upload.copied : currentContent.upload.copyLink}
-                </button>
-              </div>
-            </div>
-            
-            <button
-              onClick={resetUpload}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              {currentContent.upload.newUpload}
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-clouddey-blue text-white px-6 py-8">
+      {/* Footer - mt-auto keeps it at bottom */}
+      <footer className="mt-auto bg-clouddey-blue text-white px-4 sm:px-6 py-6 sm:py-8">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-white">© 2025 Clouddey. All rights reserved.</p>
+          <p className="text-white text-sm sm:text-base">© 2025 Clouddey. All rights reserved.</p>
         </div>
       </footer>
     </div>
