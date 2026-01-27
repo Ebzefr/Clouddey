@@ -220,10 +220,7 @@ const DownloadPage = () => {
   const currentContent = content[language] || content.en;
 
   useEffect(() => {
-    fetchFileInfo();
-  }, [fileId]);
-
-  const fetchFileInfo = async () => {
+    const fetchFileInfo = async () => {
     try {
       const response = await fetch(`/api/download?fileId=${fileId}`);
       if (response.ok) {
@@ -238,7 +235,11 @@ const DownloadPage = () => {
     } finally {
       setLoading(false);
     }
+    fetchFileInfo();
   };
+  }, [fileId]);
+
+  
 
   const handleDownload = async () => {
     if (fileInfo.hasPassword && !password.trim()) {
