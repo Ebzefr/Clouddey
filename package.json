@@ -4,15 +4,14 @@
   "main": "index.js",
   "scripts": {
     "dev": "cd frontend && npm start",
-    "build": "cd frontend && npm run build",
-    "install": "npm install && cd frontend && npm install"
+    "build": "cd frontend && npm run build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "Clouddey - Temporary File Sharing",
   "dependencies": {
-    "formidable": "^3.5.4",
-    "nodemailer": "^7.0.6"
+    "formidable": "^3.5.1",
+    "nodemailer": "^6.9.7"
   }
 }
