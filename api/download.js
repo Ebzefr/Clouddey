@@ -1,6 +1,5 @@
-// api/download.js
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
 const STORAGE_DIR = '/tmp/clouddey-files';
 
@@ -8,7 +7,7 @@ function isExpired(expirationDate) {
   return new Date() > new Date(expirationDate);
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -38,7 +37,9 @@ export default async function handler(req, res) {
         const filePath = path.join(STORAGE_DIR, fileId);
         fs.unlinkSync(filePath);
         fs.unlinkSync(infoPath);
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error deleting expired file:', e);
+      }
       return res.status(410).json({ error: 'File has expired' });
     }
 
@@ -61,9 +62,27 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      // Parse body for POST requests
+      let body = {};
+      if (req.body) {
+        body = req.body;
+      } else {
+        // Manual body parsing if needed
+        const buffers = [];
+        for await (const chunk of req) {
+          buffers.push(chunk);
+        }
+        const data = Buffer.concat(buffers).toString();
+        try {
+          body = JSON.parse(data);
+        } catch (e) {
+          body = {};
+        }
+      }
+
       // Check password if required
       if (fileInfo.hasPassword) {
-        const { password } = req.body;
+        const { password } = body;
         
         if (!password) {
           return res.status(400).json({ 
@@ -79,9 +98,9 @@ export default async function handler(req, res) {
             try {
               const filePath = path.join(STORAGE_DIR, fileId);
               fs.unlinkSync(filePath);
-              fs.writeFileSync(infoPath, JSON.stringify(fileInfo, null, 2));
+              fs.unlinkSync(infoPath);
             } catch (e) {
-              console.error('Error deleting file:', e);
+              console.error('Error deleting file after max attempts:', e);
             }
             return res.status(403).json({ 
               error: 'Maximum password attempts exceeded. File has been permanently deleted.',
@@ -111,11 +130,11 @@ export default async function handler(req, res) {
         fs.unlinkSync(filePath);
         fs.unlinkSync(infoPath);
       } catch (deleteError) {
-        console.error('Error deleting files:', deleteError);
+        console.error('Error deleting files after download:', deleteError);
       }
       
       res.setHeader('Content-Type', fileInfo.contentType || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.originalName}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileInfo.originalName)}"`);
       res.setHeader('Content-Length', fileBuffer.length);
       
       return res.status(200).send(fileBuffer);
@@ -127,4 +146,10 @@ export default async function handler(req, res) {
     console.error('Download error:', error);
     return res.status(500).json({ error: 'Download failed: ' + error.message });
   }
-}
+};
+
+module.exports.config = {
+  api: {
+    bodyParser: true,
+  },
+};
