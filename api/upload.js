@@ -74,22 +74,38 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Check if BLOB_READ_WRITE_TOKEN exists
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error('BLOB_READ_WRITE_TOKEN is not set');
+    return res.status(500).json({ error: 'Server configuration error: Blob storage not configured' });
+  }
+
   const form = formidable({
     maxFileSize: 100 * 1024 * 1024,
   });
 
   try {
+    console.log('Starting file upload...');
+    
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
-        else resolve([fields, files]);
+        if (err) {
+          console.error('Form parse error:', err);
+          reject(err);
+        } else {
+          resolve([fields, files]);
+        }
       });
     });
+
+    console.log('Form parsed successfully');
 
     const uploadedFile = files.file?.[0] || files.file;
     if (!uploadedFile) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    console.log('File received:', uploadedFile.originalFilename, uploadedFile.size);
 
     const password = fields.password?.[0] || fields.password || null;
     const recipientEmail = fields.recipientEmail?.[0] || fields.recipientEmail || null;
@@ -98,14 +114,18 @@ module.exports = async function handler(req, res) {
     const fileId = crypto.randomBytes(16).toString('hex');
     const expiresAt = getExpirationDate(expirationTime);
 
+    console.log('Generated fileId:', fileId);
+
     // Read file buffer
     const fileBuffer = fs.readFileSync(uploadedFile.filepath);
+    console.log('File buffer read, size:', fileBuffer.length);
     
     // Upload file to Vercel Blob
+    console.log('Uploading to Vercel Blob...');
     const fileBlob = await put(fileId, fileBuffer, {
       access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
+    console.log('File uploaded to Blob:', fileBlob.url);
 
     const fileInfo = {
       originalName: uploadedFile.originalFilename || uploadedFile.newFilename || 'uploaded-file',
@@ -121,10 +141,11 @@ module.exports = async function handler(req, res) {
     };
 
     // Upload metadata to Vercel Blob
+    console.log('Uploading metadata...');
     await put(`${fileId}.json`, JSON.stringify(fileInfo), {
       access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
+    console.log('Metadata uploaded');
 
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host;
@@ -139,11 +160,12 @@ module.exports = async function handler(req, res) {
     };
 
     if (recipientEmail) {
+      console.log('Sending email to:', recipientEmail);
       const emailSent = await sendEmailNotification(recipientEmail, fileInfo, downloadLink);
       response.emailSent = emailSent;
     }
 
-    console.log('Upload successful:', fileId);
+    console.log('Upload complete, returning response');
     return res.status(200).json(response);
 
   } catch (error) {
