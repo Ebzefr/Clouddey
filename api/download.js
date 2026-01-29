@@ -1,4 +1,4 @@
-const { head, del } = require('@vercel/blob');
+const { list, del } = require('@vercel/blob');
 
 function isExpired(expirationDate) {
   return new Date() > new Date(expirationDate);
@@ -22,31 +22,36 @@ module.exports = async function handler(req, res) {
   try {
     console.log('Download request for fileId:', fileId);
 
-    // Construct the Blob URL for metadata
-    const metadataUrl = `https://${process.env.BLOB_READ_WRITE_TOKEN.split('_')[1]}.public.blob.vercel-storage.com/${fileId}.json`;
+    // List all blobs and find our file
+    const { blobs } = await list({
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+
+    // Find the metadata blob
+    const metadataBlob = blobs.find(b => b.pathname === `${fileId}.json`);
     
-    console.log('Fetching metadata from Blob...');
-    
-    // Get file metadata from Blob
-    let fileInfo;
-    try {
-      const metadataResponse = await fetch(metadataUrl);
-      if (!metadataResponse.ok) {
-        console.error('Metadata not found, status:', metadataResponse.status);
-        return res.status(404).json({ error: 'File not found' });
-      }
-      fileInfo = await metadataResponse.json();
-      console.log('Metadata retrieved:', fileInfo.originalName);
-    } catch (error) {
-      console.error('Error fetching metadata:', error);
+    if (!metadataBlob) {
+      console.error('Metadata blob not found');
       return res.status(404).json({ error: 'File not found' });
     }
+
+    console.log('Metadata blob found:', metadataBlob.url);
+
+    // Fetch metadata
+    const metadataResponse = await fetch(metadataBlob.url);
+    if (!metadataResponse.ok) {
+      console.error('Failed to fetch metadata');
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const fileInfo = await metadataResponse.json();
+    console.log('Metadata retrieved:', fileInfo.originalName);
 
     // Check if file has expired
     if (isExpired(fileInfo.expiresAt)) {
       console.log('File expired');
       try {
-        await del([fileId, `${fileId}.json`], {
+        await del([fileInfo.blobUrl, metadataBlob.url], {
           token: process.env.BLOB_READ_WRITE_TOKEN,
         });
       } catch (e) {
@@ -110,7 +115,7 @@ module.exports = async function handler(req, res) {
           if (fileInfo.attemptCount >= 2) {
             console.log('Max password attempts reached, deleting file');
             try {
-              await del([fileId, `${fileId}.json`], {
+              await del([fileInfo.blobUrl, metadataBlob.url], {
                 token: process.env.BLOB_READ_WRITE_TOKEN,
               });
             } catch (e) {
@@ -139,7 +144,7 @@ module.exports = async function handler(req, res) {
       console.log('Downloading file from Blob URL:', fileInfo.blobUrl);
       const fileResponse = await fetch(fileInfo.blobUrl);
       if (!fileResponse.ok) {
-        console.error('File download failed, status:', fileResponse.status);
+        console.error('File download failed');
         return res.status(404).json({ error: 'File data not found' });
       }
 
@@ -149,7 +154,7 @@ module.exports = async function handler(req, res) {
       // Delete files after successful download
       try {
         console.log('Deleting files from Blob...');
-        await del([fileId, `${fileId}.json`], {
+        await del([fileInfo.blobUrl, metadataBlob.url], {
           token: process.env.BLOB_READ_WRITE_TOKEN,
         });
         console.log('Files deleted successfully');
