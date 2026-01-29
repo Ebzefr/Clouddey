@@ -1,22 +1,8 @@
-// api/upload.js
-import { IncomingForm } from 'formidable';
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
-import nodemailer from 'nodemailer';
-const { createTransport } = nodemailer;
-const STORAGE_DIR = '/tmp/clouddey-files';
-
-// Ensure storage directory exists
-if (!fs.existsSync(STORAGE_DIR)) {
-  fs.mkdirSync(STORAGE_DIR, { recursive: true });
-}
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+const { put } = require('@vercel/blob');
+const formidable = require('formidable');
+const fs = require('fs');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const getExpirationDate = (expirationTime) => {
   const now = new Date();
@@ -44,7 +30,7 @@ const formatExpirationTime = (expirationTime) => {
 
 const sendEmailNotification = async (recipientEmail, fileInfo, downloadLink) => {
   try {
-const transporter = createTransport({
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
@@ -53,7 +39,7 @@ const transporter = createTransport({
     });
     
     await transporter.sendMail({
-      from: '"Clouddey" <macamsandra@gmail.com>',
+      from: '"Clouddey" <' + process.env.EMAIL_USER + '>',
       to: recipientEmail,
       subject: `File shared with you via Clouddey - ${fileInfo.originalName}`,
       html: `
@@ -63,7 +49,7 @@ const transporter = createTransport({
           <p><strong>File:</strong> ${fileInfo.originalName}</p>
           <p><strong>Size:</strong> ${(fileInfo.size / 1024 / 1024).toFixed(2)} MB</p>
           <p><strong>Expires in:</strong> ${formatExpirationTime(fileInfo.expirationTime)}</p>
-          ${fileInfo.hasPassword ? '<p><strong>Password protected</strong></p>' : ''}
+          ${fileInfo.hasPassword ? '<p><strong>🔒 Password protected</strong></p>' : ''}
           <a href="${downloadLink}" style="background: #FF6B35; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0;">Download File</a>
         </div>
       `
@@ -75,7 +61,7 @@ const transporter = createTransport({
   }
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -88,9 +74,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const form = new IncomingForm({
-    uploadDir: STORAGE_DIR,
-    keepExtensions: true,
+  const form = formidable({
     maxFileSize: 100 * 1024 * 1024,
   });
 
@@ -114,8 +98,17 @@ export default async function handler(req, res) {
     const fileId = crypto.randomBytes(16).toString('hex');
     const expiresAt = getExpirationDate(expirationTime);
 
+    // Read file buffer
+    const fileBuffer = fs.readFileSync(uploadedFile.filepath);
+    
+    // Upload file to Vercel Blob
+    const fileBlob = await put(fileId, fileBuffer, {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+
     const fileInfo = {
-      originalName: uploadedFile.originalFilename || 'uploaded-file',
+      originalName: uploadedFile.originalFilename || uploadedFile.newFilename || 'uploaded-file',
       size: uploadedFile.size,
       contentType: uploadedFile.mimetype || 'application/octet-stream',
       uploadedAt: new Date().toISOString(),
@@ -123,16 +116,17 @@ export default async function handler(req, res) {
       expirationTime,
       hasPassword: !!password,
       password: password,
-      attemptCount: 0
+      attemptCount: 0,
+      blobUrl: fileBlob.url
     };
 
-    const infoPath = path.join(STORAGE_DIR, `${fileId}.json`);
-    fs.writeFileSync(infoPath, JSON.stringify(fileInfo, null, 2));
+    // Upload metadata to Vercel Blob
+    await put(`${fileId}.json`, JSON.stringify(fileInfo), {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
 
-    const finalPath = path.join(STORAGE_DIR, fileId);
-    fs.renameSync(uploadedFile.filepath, finalPath);
-
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host;
     const downloadLink = `${protocol}://${host}/download/${fileId}`;
 
@@ -149,6 +143,7 @@ export default async function handler(req, res) {
       response.emailSent = emailSent;
     }
 
+    console.log('Upload successful:', fileId);
     return res.status(200).json(response);
 
   } catch (error) {
@@ -157,4 +152,10 @@ export default async function handler(req, res) {
       error: 'Upload failed: ' + error.message 
     });
   }
-}
+};
+
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
+};

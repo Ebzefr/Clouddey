@@ -1,7 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-const STORAGE_DIR = '/tmp/clouddey-files';
+const { head, del } = require('@vercel/blob');
 
 function isExpired(expirationDate) {
   return new Date() > new Date(expirationDate);
@@ -23,30 +20,34 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const infoPath = path.join(STORAGE_DIR, `${fileId}.json`);
-    
-    if (!fs.existsSync(infoPath)) {
+    // Get file metadata from Blob
+    let fileInfo;
+    try {
+      const metadataResponse = await fetch(`https://${process.env.BLOB_READ_WRITE_TOKEN.split('_')[0]}.public.blob.vercel-storage.com/${fileId}.json`);
+      if (!metadataResponse.ok) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      fileInfo = await metadataResponse.json();
+    } catch (error) {
       return res.status(404).json({ error: 'File not found' });
     }
-
-    const fileInfo = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
 
     // Check if file has expired
     if (isExpired(fileInfo.expiresAt)) {
       try {
-        const filePath = path.join(STORAGE_DIR, fileId);
-        fs.unlinkSync(filePath);
-        fs.unlinkSync(infoPath);
+        await del([`${fileId}`, `${fileId}.json`], {
+          token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
       } catch (e) {
         console.error('Error deleting expired file:', e);
       }
       return res.status(410).json({ error: 'File has expired' });
     }
 
-    // Check if max attempts already reached
+    // Check if max attempts reached
     if (fileInfo.hasPassword && fileInfo.attemptCount >= 2) {
       return res.status(403).json({ 
-        error: 'Maximum password attempts exceeded. File has been permanently deleted.',
+        error: 'Maximum password attempts exceeded.',
         remainingAttempts: 0
       });
     }
@@ -62,12 +63,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // Parse body for POST requests
       let body = {};
       if (req.body) {
         body = req.body;
       } else {
-        // Manual body parsing if needed
         const buffers = [];
         for await (const chunk of req) {
           buffers.push(chunk);
@@ -80,7 +79,7 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // Check password if required
+      // Check password
       if (fileInfo.hasPassword) {
         const { password } = body;
         
@@ -96,41 +95,46 @@ module.exports = async function handler(req, res) {
           
           if (fileInfo.attemptCount >= 2) {
             try {
-              const filePath = path.join(STORAGE_DIR, fileId);
-              fs.unlinkSync(filePath);
-              fs.unlinkSync(infoPath);
+              await del([`${fileId}`, `${fileId}.json`], {
+                token: process.env.BLOB_READ_WRITE_TOKEN,
+              });
             } catch (e) {
-              console.error('Error deleting file after max attempts:', e);
+              console.error('Error deleting file:', e);
             }
             return res.status(403).json({ 
-              error: 'Maximum password attempts exceeded. File has been permanently deleted.',
+              error: 'Maximum password attempts exceeded.',
               remainingAttempts: 0
             });
           } else {
-            fs.writeFileSync(infoPath, JSON.stringify(fileInfo, null, 2));
-            const remaining = 2 - fileInfo.attemptCount;
+            // Update attempt count
+            const { put } = require('@vercel/blob');
+            await put(`${fileId}.json`, JSON.stringify(fileInfo), {
+              access: 'public',
+              token: process.env.BLOB_READ_WRITE_TOKEN,
+            });
             return res.status(401).json({ 
               error: 'Invalid password',
-              remainingAttempts: remaining
+              remainingAttempts: 2 - fileInfo.attemptCount
             });
           }
         }
       }
-      
-      const filePath = path.join(STORAGE_DIR, fileId);
-      
-      if (!fs.existsSync(filePath)) {
+
+      // Download file from Blob
+      const fileResponse = await fetch(fileInfo.blobUrl);
+      if (!fileResponse.ok) {
         return res.status(404).json({ error: 'File data not found' });
       }
 
-      const fileBuffer = fs.readFileSync(filePath);
+      const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
       
       // Delete files after successful download
       try {
-        fs.unlinkSync(filePath);
-        fs.unlinkSync(infoPath);
+        await del([`${fileId}`, `${fileId}.json`], {
+          token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
       } catch (deleteError) {
-        console.error('Error deleting files after download:', deleteError);
+        console.error('Error deleting files:', deleteError);
       }
       
       res.setHeader('Content-Type', fileInfo.contentType || 'application/octet-stream');
