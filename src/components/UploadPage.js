@@ -315,43 +315,50 @@ const UploadPage = () => {
   };
 
   // Main upload function
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+ const handleUpload = async () => {
+  if (!selectedFile) return;
+  
+  if (recipientEmail && !isValidEmail(recipientEmail)) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+  
+  setIsUploading(true);
+  setUploadProgress(0);
+  setEmailSent(false);
+
+  try {
+    const formData = new FormData();
+    formData.append('file', selectedFile);
     
-    if (recipientEmail && !isValidEmail(recipientEmail)) {
-      alert('Please enter a valid email address.');
-      return;
+    if (password && password.trim()) {
+      formData.append('password', password.trim());
     }
     
-    setIsUploading(true);
-    setUploadProgress(0);
-    setEmailSent(false);
+    if (recipientEmail && recipientEmail.trim()) {
+      formData.append('recipientEmail', recipientEmail.trim());
+    }
+    
+    formData.append('expirationTime', expirationTime);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      
-      if (password && password.trim()) {
-        formData.append('password', password.trim());
+    const xhr = new XMLHttpRequest();
+
+    // ADD TIMEOUT
+    xhr.timeout = 60000; // 60 seconds timeout
+
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percentComplete);
       }
+    });
+
+    xhr.addEventListener('load', () => {
+      console.log('XHR Load event, status:', xhr.status);
+      console.log('Response:', xhr.responseText);
       
-      if (recipientEmail && recipientEmail.trim()) {
-        formData.append('recipientEmail', recipientEmail.trim());
-      }
-      
-      formData.append('expirationTime', expirationTime);
-
-      const xhr = new XMLHttpRequest();
-
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(percentComplete);
-        }
-      });
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
+      if (xhr.status === 200) {
+        try {
           const response = JSON.parse(xhr.responseText);
           setIsUploading(false);
           setUploadComplete(true);
@@ -360,26 +367,47 @@ const UploadPage = () => {
           if (response.emailSent) {
             setEmailSent(true);
           }
-        } else {
-          const error = JSON.parse(xhr.responseText);
-          throw new Error(error.error || 'Upload failed');
+        } catch (parseError) {
+          console.error('Parse error:', parseError);
+          setIsUploading(false);
+          alert('Upload succeeded but response was invalid. Check console.');
         }
-      });
+      } else {
+        setIsUploading(false);
+        try {
+          const error = JSON.parse(xhr.responseText);
+          alert(`Upload failed: ${error.error || 'Unknown error'}`);
+        } catch (e) {
+          alert(`Upload failed with status ${xhr.status}`);
+        }
+      }
+    });
 
-      xhr.addEventListener('error', () => {
-        throw new Error('Upload failed. Please check your connection.');
-      });
-
-      xhr.open('POST', '/api/upload');
-      xhr.send(formData);
-
-    } catch (error) {
-      console.error('Upload error:', error);
+    xhr.addEventListener('error', () => {
+      console.error('XHR Error event');
       setIsUploading(false);
       setUploadProgress(0);
-      alert(error.message || 'Upload failed. Please try again.');
-    }
-  };
+      alert('Upload failed. Network error.');
+    });
+
+    // ADD TIMEOUT HANDLER
+    xhr.addEventListener('timeout', () => {
+      console.error('XHR Timeout');
+      setIsUploading(false);
+      setUploadProgress(0);
+      alert('Upload timed out. The file might be too large or the server is slow.');
+    });
+
+    xhr.open('POST', '/api/upload');
+    xhr.send(formData);
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    setIsUploading(false);
+    setUploadProgress(0);
+    alert(error.message || 'Upload failed. Please try again.');
+  }
+};
 
   // Copy link to clipboard
   const copyToClipboard = async () => {
