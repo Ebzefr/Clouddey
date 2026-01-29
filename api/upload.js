@@ -1,5 +1,5 @@
 const { put } = require('@vercel/blob');
-const formidable = require('formidable');
+const { IncomingForm } = require('formidable');  
 const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
@@ -74,13 +74,12 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check if BLOB_READ_WRITE_TOKEN exists
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     console.error('BLOB_READ_WRITE_TOKEN is not set');
     return res.status(500).json({ error: 'Server configuration error: Blob storage not configured' });
   }
 
-  const form = formidable({
+  const form = new IncomingForm({  // ← FIXED
     maxFileSize: 100 * 1024 * 1024,
   });
 
@@ -116,11 +115,9 @@ module.exports = async function handler(req, res) {
 
     console.log('Generated fileId:', fileId);
 
-    // Read file buffer
     const fileBuffer = fs.readFileSync(uploadedFile.filepath);
     console.log('File buffer read, size:', fileBuffer.length);
     
-    // Upload file to Vercel Blob
     console.log('Uploading to Vercel Blob...');
     const fileBlob = await put(fileId, fileBuffer, {
       access: 'public',
@@ -140,7 +137,6 @@ module.exports = async function handler(req, res) {
       blobUrl: fileBlob.url
     };
 
-    // Upload metadata to Vercel Blob
     console.log('Uploading metadata...');
     await put(`${fileId}.json`, JSON.stringify(fileInfo), {
       access: 'public',
